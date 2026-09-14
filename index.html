@@ -194,6 +194,56 @@
     padding: 9px 18px; border-radius: 12px; cursor: pointer; margin-top: 8px;
   }
   .hint { font-size: 12px; color: var(--text-light); margin-top: 8px; }
+
+  /* 六级单词背诵 */
+  .ms-study-btn {
+    display: block; width: 100%; margin-top: 12px; border: none;
+    background: var(--cet); color: #fff; font-size: 14px; font-weight: 600;
+    padding: 10px; border-radius: 12px; cursor: pointer;
+  }
+  .ms-study-btn:active { opacity: .85; }
+  #wordStudyView {
+    position: fixed; inset: 0; background: linear-gradient(180deg, #f6f1ea 0%, #f1ece4 100%);
+    padding: 24px 16px; overflow-y: auto; z-index: 10;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  #wordStudyView[hidden] { display: none; }
+  .ws-inner { width: 100%; max-width: 560px; }
+  .ws-top {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;
+  }
+  .ws-back {
+    border: none; background: #fff; color: var(--text); font-size: 14px;
+    padding: 9px 18px; border-radius: 30px; cursor: pointer;
+    box-shadow: 0 2px 8px rgba(150,130,110,.08);
+  }
+  .ws-info { text-align: right; font-size: 12px; color: var(--text-light); }
+  .ws-prog { font-weight: 800; color: var(--cet); font-size: 16px; display: block; }
+  .ws-card {
+    background: #fff; border-radius: 24px; padding: 52px 28px; text-align: center;
+    box-shadow: 0 8px 30px rgba(150,130,110,.12); cursor: pointer;
+    min-height: 280px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; margin-bottom: 22px;
+  }
+  .ws-en { font-size: 36px; font-weight: 800; color: var(--text); letter-spacing: 1px; word-break: break-all; }
+  .ws-cn { font-size: 16px; color: var(--text); margin-top: 20px; line-height: 1.8; }
+  .ws-tip { font-size: 12px; color: var(--text-light); margin-top: 18px; }
+  .ws-actions { display: flex; gap: 14px; width: 100%; }
+  .ws-actions button {
+    flex: 1; border: none; font-size: 16px; font-weight: 600; padding: 16px;
+    border-radius: 16px; cursor: pointer;
+  }
+  .ws-no { background: #f0e4e0; color: #b06060; }
+  .ws-yes { background: var(--cet); color: #fff; }
+  .ws-finish { text-align: center; padding: 40px 20px; }
+  .ws-finish-emoji { font-size: 60px; }
+  .ws-finish-text { margin: 16px 0; font-size: 16px; color: var(--text); }
+  .ws-again, .ws-back2 {
+    border: none; font-size: 15px; font-weight: 600; padding: 14px 32px;
+    border-radius: 30px; cursor: pointer; margin: 8px 6px 0;
+  }
+  .ws-again { background: var(--cet); color: #fff; }
+  .ws-back2 { background: #fff; color: var(--text); }
 </style>
 </head>
 <body>
@@ -287,6 +337,34 @@
 
 </div>
 
+<!-- 六级单词背诵界面 -->
+<section id="wordStudyView" hidden>
+  <div class="ws-inner">
+    <div class="ws-top">
+      <button class="ws-back" id="wordBack">← 返回</button>
+      <div class="ws-info">
+        <span class="ws-prog" id="wordProgress">1 / 25</span>
+        <span id="wordToday">今日已背 0 个</span>
+      </div>
+    </div>
+    <div class="ws-card" id="wordCard">
+      <div class="ws-en" id="wordEn"></div>
+      <div class="ws-cn" id="wordCn" hidden></div>
+      <div class="ws-tip" id="wordTip">👆 点击卡片看释义</div>
+    </div>
+    <div class="ws-actions" id="wordActions" hidden>
+      <button class="ws-no" id="wordNo">😕 不认识</button>
+      <button class="ws-yes" id="wordYes">😀 认识</button>
+    </div>
+    <div class="ws-finish" id="wordFinish" hidden>
+      <div class="ws-finish-emoji">🎉</div>
+      <div class="ws-finish-text" id="wordFinishText"></div>
+      <button class="ws-again" id="wordRestart">再背一轮</button>
+      <button class="ws-back2" id="wordBack2">返回工作台</button>
+    </div>
+  </div>
+</section>
+
 <script>
 (function () {
   const STORE = 'workbench_state_v1';
@@ -312,6 +390,35 @@
   ];
 
   const MOODS = ['😄','🙂','😐','😞','😵'];
+
+  // —— 六级高频词库（示例25个，可自行增删）——
+  const WORDS = [
+    { en:'abandon', cn:'v. 放弃，抛弃<br>He abandoned his plan.' },
+    { en:'abundant', cn:'adj. 丰富的，充裕的<br>abundant resources' },
+    { en:'accelerate', cn:'v. 加速<br>accelerate the process' },
+    { en:'accommodate', cn:'v. 容纳；适应<br>accommodate 500 guests' },
+    { en:'accumulate', cn:'v. 积累<br>accumulate wealth' },
+    { en:'acknowledge', cn:'v. 承认；致谢<br>acknowledge the mistake' },
+    { en:'acquire', cn:'v. 获得，习得<br>acquire knowledge' },
+    { en:'adapt', cn:'v. 适应；改编<br>adapt to change' },
+    { en:'adequate', cn:'adj. 充足的，适当的<br>adequate supply' },
+    { en:'advocate', cn:'v./n. 提倡；拥护者<br>advocate reform' },
+    { en:'allocate', cn:'v. 分配<br>allocate funds' },
+    { en:'ambiguous', cn:'adj. 模糊的，模棱两可的<br>ambiguous answer' },
+    { en:'anticipate', cn:'v. 预期，预料<br>anticipate problems' },
+    { en:'apparent', cn:'adj. 明显的，表面的<br>apparent reason' },
+    { en:'arbitrary', cn:'adj. 任意的，专断的<br>arbitrary decision' },
+    { en:'assess', cn:'v. 评估<br>assess the risk' },
+    { en:'attribute', cn:'v. 归因于<br>attribute success to effort' },
+    { en:'beneficial', cn:'adj. 有益的<br>beneficial effect' },
+    { en:'compensate', cn:'v. 补偿<br>compensate for loss' },
+    { en:'comprehensive', cn:'adj. 全面的<br>comprehensive review' },
+    { en:'compulsory', cn:'adj. 强制的，义务的<br>compulsory education' },
+    { en:'conceive', cn:'v. 构想<br>conceive an idea' },
+    { en:'consecutive', cn:'adj. 连续的<br>three consecutive days' },
+    { en:'conservative', cn:'adj. 保守的<br>conservative estimate' },
+    { en:'consolidate', cn:'v. 巩固，合并<br>consolidate knowledge' },
+  ];
 
   function todayKey() {
     const d = new Date();
@@ -417,6 +524,13 @@
         });
         card.appendChild(div);
       });
+      if (key === 'cet') {
+        const btn = document.createElement('button');
+        btn.className = 'ms-study-btn';
+        btn.textContent = '📖 进入单词背诵';
+        btn.addEventListener('click', () => showWordStudy());
+        card.appendChild(btn);
+      }
       grid.appendChild(card);
     });
   }
@@ -507,6 +621,61 @@
     today().review = document.getElementById('reviewText').value;
     saveState();
     alert('✅ 复盘已保存到本地');
+  });
+
+  // —— 六级单词背诵 ——
+  let wordIndex = 0, wordFlipped = false;
+  function showWordStudy() {
+    document.querySelector('.wrap').style.display = 'none';
+    document.getElementById('wordStudyView').hidden = false;
+    wordIndex = 0; wordFlipped = false;
+    renderWord();
+  }
+  function showMain() {
+    document.getElementById('wordStudyView').hidden = true;
+    document.querySelector('.wrap').style.display = '';
+  }
+  function renderWord() {
+    const w = WORDS[wordIndex];
+    document.getElementById('wordEn').textContent = w.en;
+    document.getElementById('wordCn').innerHTML = w.cn;
+    document.getElementById('wordCn').hidden = !wordFlipped;
+    document.getElementById('wordTip').hidden = wordFlipped;
+    document.getElementById('wordActions').hidden = !wordFlipped;
+    document.getElementById('wordFinish').hidden = true;
+    document.getElementById('wordCard').style.display = 'flex';
+    document.getElementById('wordProgress').textContent = (wordIndex + 1) + ' / ' + WORDS.length;
+    document.getElementById('wordToday').textContent = '今日已背 ' + (today().words || 0) + ' 个';
+  }
+  function nextWord() {
+    const t = today();
+    t.words = (t.words || 0) + 1;
+    if (t.words >= 50 && state.lastWordDate !== todayKey()) {
+      state.lastWordDate = todayKey();
+      state.streak = (state.streak || 0) + 1;
+    }
+    saveState(); renderWords();
+    wordIndex++; wordFlipped = false;
+    if (wordIndex >= WORDS.length) {
+      document.getElementById('wordCard').style.display = 'none';
+      document.getElementById('wordActions').hidden = true;
+      document.getElementById('wordFinish').hidden = false;
+      document.getElementById('wordFinishText').textContent =
+        '本轮背完 ' + WORDS.length + ' 个词！今日累计 ' + (today().words || 0) + ' 个。';
+      document.getElementById('wordToday').textContent = '今日已背 ' + (today().words || 0) + ' 个';
+    } else {
+      renderWord();
+    }
+  }
+  document.getElementById('wordCard').addEventListener('click', () => {
+    if (!wordFlipped) { wordFlipped = true; renderWord(); }
+  });
+  document.getElementById('wordYes').addEventListener('click', nextWord);
+  document.getElementById('wordNo').addEventListener('click', nextWord);
+  document.getElementById('wordBack').addEventListener('click', showMain);
+  document.getElementById('wordBack2').addEventListener('click', showMain);
+  document.getElementById('wordRestart').addEventListener('click', () => {
+    wordIndex = 0; wordFlipped = false; renderWord();
   });
 
   // 初始化
