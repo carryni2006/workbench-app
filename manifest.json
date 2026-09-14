@@ -1,0 +1,14 @@
+{
+  "name": "我的自律工作台",
+  "short_name": "自律工作台",
+  "description": "AI求职主线 · 英语 · 自媒体 · 复盘的每日打卡与进度管理",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f4efe9",
+  "theme_color": "#b58a8a",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

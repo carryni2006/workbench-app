@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>我的自律工作台</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#f4efe9">
+<link rel="apple-touch-icon" href="icon.svg">
+<style>
+  :root {
+    --bg: #f4efe9;
+    --card: #ffffff;
+    --text: #4a4a4a;
+    --text-light: #9a958f;
+    --line: #e8e1d8;
+
+    --ai: #8b9bad;      /* 灰蓝 */
+    --cet: #8ba398;     /* 灰绿 */
+    --ielts: #a395b3;   /* 灰紫 */
+    --media: #c2a1a1;   /* 灰粉 */
+    --photo: #c0a382;   /* 奶茶 */
+    --job: #9b8a7a;     /* 灰棕 */
+    --accent: #b58a8a;  /* 主强调 */
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+    background: linear-gradient(180deg, #f6f1ea 0%, #f1ece4 100%);
+    color: var(--text);
+    padding: 20px 16px 60px;
+    line-height: 1.5;
+  }
+
+  .wrap { max-width: 900px; margin: 0 auto; }
+
+  /* 顶部 */
+  header {
+    background: var(--card);
+    border-radius: 20px;
+    padding: 22px 24px;
+    margin-bottom: 18px;
+    box-shadow: 0 4px 20px rgba(150, 130, 110, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  header .title { font-size: 20px; font-weight: 700; letter-spacing: .5px; }
+  header .sub { font-size: 13px; color: var(--text-light); margin-top: 3px; }
+  .today-ring {
+    display: flex; align-items: center; gap: 12px;
+  }
+  .ring {
+    width: 58px; height: 58px; border-radius: 50%;
+    background: conic-gradient(var(--accent) calc(var(--p, 0)*1%), #efe8df 0);
+    display: grid; place-items: center;
+  }
+  .ring > div {
+    width: 46px; height: 46px; border-radius: 50%;
+    background: #fff; display: grid; place-items: center;
+    font-size: 14px; font-weight: 700; color: var(--accent);
+  }
+
+  /* 通用卡片 */
+  .card {
+    background: var(--card);
+    border-radius: 20px;
+    padding: 20px 22px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 20px rgba(150, 130, 110, 0.07);
+  }
+  .card h2 {
+    font-size: 15px; font-weight: 700; margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+
+  /* 网格 */
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+
+  /* 今日任务 */
+  .task {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px; border-radius: 12px; cursor: pointer;
+    transition: background .15s;
+  }
+  .task:hover { background: #faf6f0; }
+  .task input { display: none; }
+  .task .box {
+    width: 20px; height: 20px; border-radius: 7px; border: 2px solid var(--line);
+    display: grid; place-items: center; flex-shrink: 0; font-size: 13px; color: #fff;
+    transition: all .15s;
+  }
+  .task.done .box { background: var(--tc, var(--accent)); border-color: var(--tc, var(--accent)); }
+  .task.done .box::after { content: "✓"; }
+  .task .label { flex: 1; font-size: 14px; }
+  .task.done .label { text-decoration: line-through; color: var(--text-light); }
+  .tag {
+    font-size: 11px; padding: 2px 9px; border-radius: 20px;
+    color: #fff; background: var(--tc, var(--accent)); flex-shrink: 0;
+  }
+
+  /* 里程碑进度 */
+  .milestone-head {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;
+  }
+  .milestone-head .pct { font-weight: 700; font-size: 13px; }
+  .bar {
+    height: 8px; border-radius: 10px; background: #efe8df; overflow: hidden; margin-bottom: 12px;
+  }
+  .bar > i {
+    display: block; height: 100%; border-radius: 10px;
+    background: var(--tc, var(--accent)); width: 0%; transition: width .3s;
+  }
+  .ms {
+    display: flex; align-items: center; gap: 8px; padding: 5px 0; cursor: pointer;
+  }
+  .ms .box {
+    width: 17px; height: 17px; border-radius: 6px; border: 2px solid var(--line);
+    display: grid; place-items: center; font-size: 11px; color: #fff; flex-shrink: 0;
+  }
+  .ms.on .box { background: var(--tc, var(--accent)); border-color: var(--tc, var(--accent)); }
+  .ms.on .box::after { content: "✓"; }
+  .ms span { font-size: 13px; }
+  .ms.on span { color: var(--text-light); text-decoration: line-through; }
+
+  /* 单词打卡 */
+  .streak {
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  }
+  .streak .big { font-size: 32px; font-weight: 800; color: var(--cet); }
+  .streak .unit { font-size: 12px; color: var(--text-light); }
+  .word-btn {
+    border: none; background: var(--cet); color: #fff; font-size: 14px; font-weight: 600;
+    padding: 10px 22px; border-radius: 30px; cursor: pointer;
+  }
+  .word-btn:active { opacity: .8; }
+  .mini-input {
+    border: 2px solid var(--line); border-radius: 12px; padding: 9px 12px; font-size: 14px;
+    width: 90px; outline: none; font-family: inherit; color: var(--text);
+  }
+  .mini-input:focus { border-color: var(--cet); }
+
+  /* 周计划 */
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th, td { padding: 8px 6px; text-align: center; border-bottom: 1px solid var(--line); }
+  th { color: var(--text-light); font-weight: 600; font-size: 11.5px; }
+  td:first-child, th:first-child { text-align: left; }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; color: #fff; }
+
+  /* 求职 + 灵感 */
+  .row-form { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .row-form input {
+    border: 2px solid var(--line); border-radius: 12px; padding: 9px 12px; font-size: 13px;
+    outline: none; font-family: inherit; flex: 1; min-width: 120px; color: var(--text);
+  }
+  .row-form input:focus { border-color: var(--job); }
+  .add-btn {
+    border: none; background: var(--job); color: #fff; font-size: 13px; font-weight: 600;
+    padding: 9px 16px; border-radius: 12px; cursor: pointer;
+  }
+  .item-list { list-style: none; }
+  .item-list li {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 8px 10px; border-radius: 10px; font-size: 13px; background: #faf6f0; margin-bottom: 6px;
+  }
+  .item-list li .x {
+    border: none; background: none; color: var(--text-light); cursor: pointer; font-size: 15px;
+  }
+  .status {
+    font-size: 11px; padding: 2px 9px; border-radius: 20px; background: #efe8df; color: var(--text-light);
+  }
+  .status.done { background: var(--cet); color: #fff; }
+
+  /* 复盘 */
+  .moods { display: flex; gap: 10px; margin-bottom: 12px; }
+  .mood {
+    font-size: 24px; cursor: pointer; padding: 6px 10px; border-radius: 12px;
+    transition: background .15s;
+  }
+  .mood.sel { background: #f0e4e0; }
+  .mood:hover { background: #faf0ec; }
+  textarea {
+    width: 100%; border: 2px solid var(--line); border-radius: 12px; padding: 12px;
+    font-family: inherit; font-size: 13px; resize: vertical; min-height: 70px; outline: none; color: var(--text);
+  }
+  textarea:focus { border-color: var(--accent); }
+  .save-btn {
+    border: none; background: var(--accent); color: #fff; font-size: 13px; font-weight: 600;
+    padding: 9px 18px; border-radius: 12px; cursor: pointer; margin-top: 8px;
+  }
+  .hint { font-size: 12px; color: var(--text-light); margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <div class="title">🌸 我的自律工作台</div>
+      <div class="sub" id="dateLine">今天是 ·</div>
+    </div>
+    <div class="today-ring">
+      <div class="ring" style="--p:0" id="ring"><div id="ringPct">0%</div></div>
+      <div style="font-size:12px;color:var(--text-light);line-height:1.6">
+        今日任务<br><b style="font-size:15px;color:var(--text)" id="doneCount">0</b>/<span id="totalCount">0</span> 完成
+      </div>
+    </div>
+  </header>
+
+  <!-- 今日打卡 -->
+  <section class="card">
+    <h2><span class="dot" style="background:var(--accent)"></span>今日打卡 · 按优先级</h2>
+    <div id="taskList"></div>
+  </section>
+
+  <!-- 主线进度 -->
+  <section class="grid" id="milestoneGrid"></section>
+
+  <!-- 单词 -->
+  <section class="card">
+    <h2><span class="dot" style="background:var(--cet)"></span>英语单词 · 连续打卡</h2>
+    <div class="streak">
+      <div><span class="big" id="streakDays">0</span> <span class="unit">天连续</span></div>
+      <div style="font-size:12px;color:var(--text-light)">今日已背
+        <input class="mini-input" id="wordInput" type="number" min="0" placeholder="0"> 个</div>
+      <button class="word-btn" id="wordBtn">📝 打卡今日单词</button>
+    </div>
+    <div class="hint">每天背满 50 个就点一下，连续不断更。</div>
+  </section>
+
+  <!-- 周计划 -->
+  <section class="card">
+    <h2><span class="dot" style="background:var(--ai)"></span>本周主线安排</h2>
+    <table>
+      <tr><th></th><th>一</th><th>二</th><th>三</th><th>四</th><th>五</th><th>六</th><th>日</th></tr>
+      <tr><td>早晨 30min</td><td colspan="5" style="color:var(--text-light)">六级单词（每天）</td><td>休息</td><td>复盘周计划</td></tr>
+      <tr><td>晚间主力</td>
+        <td><span class="pill" style="background:var(--ai)">AI</span></td>
+        <td><span class="pill" style="background:var(--cet)">六级</span></td>
+        <td><span class="pill" style="background:var(--ai)">Agent</span></td>
+        <td><span class="pill" style="background:var(--cet)">六级</span></td>
+        <td><span class="pill" style="background:var(--ai)">AI</span></td>
+        <td><span class="pill" style="background:var(--media)">拍摄</span></td>
+        <td><span class="pill" style="background:var(--media)">剪辑</span></td>
+      </tr>
+    </table>
+  </section>
+
+  <!-- 求职投递 -->
+  <section class="card">
+    <h2><span class="dot" style="background:var(--job)"></span>实习求职 · 投递记录</h2>
+    <div class="row-form">
+      <input id="jobCompany" placeholder="公司 / 岗位，如：XX科技 · AI运营">
+      <button class="add-btn" id="jobAdd">+ 记一笔</button>
+    </div>
+    <ul class="item-list" id="jobList"></ul>
+  </section>
+
+  <!-- 选题灵感 -->
+  <section class="card">
+    <h2><span class="dot" style="background:var(--media)"></span>口播选题 · 灵感库</h2>
+    <div class="row-form">
+      <input id="ideaInput" placeholder="灵感 / 选题，随手记">
+      <button class="add-btn" id="ideaAdd" style="background:var(--media)">+ 记录</button>
+    </div>
+    <ul class="item-list" id="ideaList"></ul>
+  </section>
+
+  <!-- 复盘 -->
+  <section class="card">
+    <h2><span class="dot" style="background:var(--ielts)"></span>今日复盘</h2>
+    <div class="moods" id="moods">
+      <span class="mood" data-m="😄">😄</span>
+      <span class="mood" data-m="🙂">🙂</span>
+      <span class="mood" data-m="😐">😐</span>
+      <span class="mood" data-m="😞">😞</span>
+      <span class="mood" data-m="😵">😵</span>
+    </div>
+    <textarea id="reviewText" placeholder="今天完成了什么？哪条线落后了？明天最重要的一件事是？"></textarea>
+    <button class="save-btn" id="reviewSave">保存复盘</button>
+  </section>
+
+</div>
+
+<script>
+(function () {
+  const STORE = 'workbench_state_v1';
+
+  // —— 里程碑（固定规划内容）——
+  const MILESTONES = {
+    ai:    { name: 'AI 求职主线', color: 'var(--ai)', items: ['收集30个目标JD','工具层上手(Claude/即梦/Midjourney)','产出3-5个AI内容成品','写出提示词模板库','搭出2个可演示Agent','写运营复盘报告','建好作品集页面','投出30份实习简历'] },
+    cet:   { name: '英语六级', color: 'var(--cet)', items: ['单词一轮(高频词)','听力真题10套','阅读分项练完','背熟写作模板+5篇范文','2套全真模拟','考试完成'] },
+    ielts: { name: '雅思(长线)', color: 'var(--ielts)', items: ['六级后启动基础期','王陆语料库第一轮','剑桥真题4-19刷完','口语题库过2轮','写作精批20+篇','报名首考'] },
+    media: { name: '自媒体(长线)', color: 'var(--media)', items: ['账号定位+简介+头像','选题库30条','发布第1条口播','每周2条坚持3个月','月度数据复盘'] },
+  };
+
+  // —— 每日任务（固定）——
+  const DAILY_TASKS = [
+    { id:'ai1',   label:'刷 JD / 看行业文',        tag:'AI',   c:'var(--ai)' },
+    { id:'ai2',   label:'AI工具 / Agent 练习 30min+', tag:'AI',   c:'var(--ai)' },
+    { id:'cet1',  label:'六级背单词 50 个',         tag:'六级', c:'var(--cet)' },
+    { id:'cet2',  label:'六级精听 1 段真题',        tag:'六级', c:'var(--cet)' },
+    { id:'ielts1',label:'雅思口语 / 语料库 30min',   tag:'雅思', c:'var(--ielts)' },
+    { id:'media1',label:'写脚本 / 剪 1 条视频',     tag:'自媒体', c:'var(--media)' },
+    { id:'photo1',label:'收集 1 个审美参考',        tag:'摄影', c:'var(--photo)' },
+    { id:'review',label:'写今日复盘',               tag:'复盘', c:'var(--accent)' },
+  ];
+
+  const MOODS = ['😄','🙂','😐','😞','😵'];
+
+  function todayKey() {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,'0');
+    const day = String(d.getDate()).padStart(2,'0');
+    return y + '-' + m + '-' + day;
+  }
+
+  function defaultState() {
+    return {
+      milestones: { ai:[], cet:[], ielts:[], media:[] },
+      daily: {},          // key: date -> { tasks:{}, words:0, mood:'', review:'' }
+      ideas: [],
+      jobs: [],
+      streak: 0,
+      lastWordDate: '',
+    };
+  }
+
+  let state = loadState();
+
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(STORE);
+      if (raw) return Object.assign(defaultState(), JSON.parse(raw));
+    } catch (e) {}
+    return defaultState();
+  }
+  function saveState() {
+    try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {}
+  }
+  function today() {
+    if (!state.daily[todayKey()]) state.daily[todayKey()] = { tasks:{}, words:0, mood:'', review:'' };
+    return state.daily[todayKey()];
+  }
+
+  // —— 顶部日期 ——
+  const now = new Date();
+  const week = ['日','一','二','三','四','五','六'][now.getDay()];
+  document.getElementById('dateLine').textContent =
+    '今天是 ' + now.getFullYear() + ' 年 ' + (now.getMonth()+1) + ' 月 ' + now.getDate() + ' 日 · 星期' + week;
+
+  // —— 今日任务 ——
+  function renderTasks() {
+    const box = document.getElementById('taskList');
+    box.innerHTML = '';
+    const t = today();
+    DAILY_TASKS.forEach(task => {
+      const done = !!t.tasks[task.id];
+      const div = document.createElement('div');
+      div.className = 'task' + (done ? ' done' : '');
+      div.style.setProperty('--tc', task.c);
+      div.innerHTML =
+        '<div class="box"></div>' +
+        '<span class="label">' + task.label + '</span>' +
+        '<span class="tag">' + task.tag + '</span>';
+      div.addEventListener('click', () => {
+        t.tasks[task.id] = !t.tasks[task.id];
+        saveState(); renderTasks(); updateRing();
+      });
+      box.appendChild(div);
+    });
+  }
+  function updateRing() {
+    const t = today();
+    const total = DAILY_TASKS.length;
+    const done = DAILY_TASKS.filter(x => t.tasks[x.id]).length;
+    const p = Math.round(done / total * 100);
+    document.getElementById('ring').style.setProperty('--p', p);
+    document.getElementById('ringPct').textContent = p + '%';
+    document.getElementById('doneCount').textContent = done;
+    document.getElementById('totalCount').textContent = total;
+  }
+
+  // —— 里程碑 ——
+  function renderMilestones() {
+    const grid = document.getElementById('milestoneGrid');
+    grid.innerHTML = '';
+    Object.keys(MILESTONES).forEach(key => {
+      const m = MILESTONES[key];
+      const doneList = state.milestones[key] || [];
+      const done = m.items.filter((_, i) => doneList[i]).length;
+      const pct = Math.round(done / m.items.length * 100);
+
+      const card = document.createElement('section');
+      card.className = 'card';
+      card.style.setProperty('--tc', m.color);
+      card.innerHTML =
+        '<div class="milestone-head"><h2 style="margin:0"><span class="dot" style="background:' + m.color + '"></span>' + m.name + '</h2>' +
+        '<span class="pct">' + pct + '%</span></div>' +
+        '<div class="bar"><i style="width:' + pct + '%"></i></div>';
+      m.items.forEach((item, i) => {
+        const on = !!doneList[i];
+        const div = document.createElement('div');
+        div.className = 'ms' + (on ? ' on' : '');
+        div.innerHTML = '<div class="box"></div><span>' + item + '</span>';
+        div.addEventListener('click', () => {
+          const arr = state.milestones[key].slice();
+          arr[i] = !arr[i];
+          state.milestones[key] = arr;
+          saveState(); renderMilestones();
+        });
+        card.appendChild(div);
+      });
+      grid.appendChild(card);
+    });
+  }
+
+  // —— 单词 ——
+  function renderWords() {
+    const t = today();
+    document.getElementById('streakDays').textContent = state.streak;
+    document.getElementById('wordInput').value = t.words || '';
+  }
+  document.getElementById('wordBtn').addEventListener('click', () => {
+    const t = today();
+    const n = parseInt(document.getElementById('wordInput').value, 10) || 0;
+    t.words = n;
+    if (n >= 50 && state.lastWordDate !== todayKey()) {
+      state.lastWordDate = todayKey();
+      state.streak = (state.streak || 0) + 1;
+    }
+    saveState(); renderWords();
+  });
+
+  // —— 求职 ——
+  function renderJobs() {
+    const ul = document.getElementById('jobList');
+    ul.innerHTML = '';
+    (state.jobs || []).forEach((j, i) => {
+      const li = document.createElement('li');
+      li.innerHTML = '<span>' + j.text + '</span>' +
+        '<span class="status">' + j.status + '</span>' +
+        '<button class="x" data-i="' + i + '">✕</button>';
+      ul.appendChild(li);
+    });
+    ul.querySelectorAll('.x').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.jobs.splice(parseInt(btn.dataset.i, 10), 1);
+        saveState(); renderJobs();
+      });
+    });
+  }
+  document.getElementById('jobAdd').addEventListener('click', () => {
+    const inp = document.getElementById('jobCompany');
+    const v = inp.value.trim();
+    if (!v) return;
+    state.jobs.push({ text: v, status: '已投' });
+    inp.value = ''; saveState(); renderJobs();
+  });
+
+  // —— 灵感 ——
+  function renderIdeas() {
+    const ul = document.getElementById('ideaList');
+    ul.innerHTML = '';
+    (state.ideas || []).forEach((s, i) => {
+      const li = document.createElement('li');
+      li.innerHTML = '<span>' + s + '</span>' +
+        '<button class="x" data-i="' + i + '">✕</button>';
+      ul.appendChild(li);
+    });
+    ul.querySelectorAll('.x').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.ideas.splice(parseInt(btn.dataset.i, 10), 1);
+        saveState(); renderIdeas();
+      });
+    });
+  }
+  document.getElementById('ideaAdd').addEventListener('click', () => {
+    const inp = document.getElementById('ideaInput');
+    const v = inp.value.trim();
+    if (!v) return;
+    state.ideas.unshift(v);
+    inp.value = ''; saveState(); renderIdeas();
+  });
+
+  // —— 复盘 ——
+  function renderReview() {
+    const t = today();
+    document.getElementById('reviewText').value = t.review || '';
+    document.querySelectorAll('.mood').forEach(el => {
+      el.classList.toggle('sel', el.dataset.m === t.mood);
+    });
+  }
+  document.querySelectorAll('.mood').forEach(el => {
+    el.addEventListener('click', () => {
+      today().mood = el.dataset.m;
+      saveState(); renderReview();
+    });
+  });
+  document.getElementById('reviewSave').addEventListener('click', () => {
+    today().review = document.getElementById('reviewText').value;
+    saveState();
+    alert('✅ 复盘已保存到本地');
+  });
+
+  // 初始化
+  renderTasks();
+  updateRing();
+  renderMilestones();
+  renderWords();
+  renderJobs();
+  renderIdeas();
+  renderReview();
+})();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(function(){});
+}
+</script>
+</body>
+</html>
