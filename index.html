@@ -227,6 +227,13 @@
   }
   .ws-en { font-size: 36px; font-weight: 800; color: var(--text); letter-spacing: 1px; word-break: break-all; }
   .ws-cn { font-size: 16px; color: var(--text); margin-top: 20px; line-height: 1.8; }
+  .ws-detail { width: 100%; margin-top: 16px; text-align: left; }
+  .ws-extra {
+    font-size: 13px; color: var(--text-light); line-height: 1.7; margin-top: 8px;
+    padding: 9px 13px; background: #faf6f0; border-radius: 11px; word-break: break-word;
+  }
+  .ws-extra b { color: var(--cet); font-weight: 600; margin-right: 6px; }
+  .ws-extra:empty { display: none; }
   .ws-tip { font-size: 12px; color: var(--text-light); margin-top: 18px; }
   .ws-actions { display: flex; gap: 14px; width: 100%; }
   .ws-actions button {
@@ -349,7 +356,12 @@
     </div>
     <div class="ws-card" id="wordCard">
       <div class="ws-en" id="wordEn"></div>
-      <div class="ws-cn" id="wordCn" hidden></div>
+      <div class="ws-detail" id="wordDetail" hidden>
+        <div class="ws-cn" id="wordCn"></div>
+        <div class="ws-extra" id="wordSyn"></div>
+        <div class="ws-extra" id="wordAnt"></div>
+        <div class="ws-extra" id="wordDer"></div>
+      </div>
       <div class="ws-tip" id="wordTip">👆 点击卡片看释义</div>
     </div>
     <div class="ws-actions" id="wordActions" hidden>
@@ -365,6 +377,7 @@
   </div>
 </section>
 
+<script src="words.js"></script>
 <script>
 (function () {
   const STORE = 'workbench_state_v1';
@@ -391,34 +404,7 @@
 
   const MOODS = ['😄','🙂','😐','😞','😵'];
 
-  // —— 六级高频词库（示例25个，可自行增删）——
-  const WORDS = [
-    { en:'abandon', cn:'v. 放弃，抛弃<br>He abandoned his plan.' },
-    { en:'abundant', cn:'adj. 丰富的，充裕的<br>abundant resources' },
-    { en:'accelerate', cn:'v. 加速<br>accelerate the process' },
-    { en:'accommodate', cn:'v. 容纳；适应<br>accommodate 500 guests' },
-    { en:'accumulate', cn:'v. 积累<br>accumulate wealth' },
-    { en:'acknowledge', cn:'v. 承认；致谢<br>acknowledge the mistake' },
-    { en:'acquire', cn:'v. 获得，习得<br>acquire knowledge' },
-    { en:'adapt', cn:'v. 适应；改编<br>adapt to change' },
-    { en:'adequate', cn:'adj. 充足的，适当的<br>adequate supply' },
-    { en:'advocate', cn:'v./n. 提倡；拥护者<br>advocate reform' },
-    { en:'allocate', cn:'v. 分配<br>allocate funds' },
-    { en:'ambiguous', cn:'adj. 模糊的，模棱两可的<br>ambiguous answer' },
-    { en:'anticipate', cn:'v. 预期，预料<br>anticipate problems' },
-    { en:'apparent', cn:'adj. 明显的，表面的<br>apparent reason' },
-    { en:'arbitrary', cn:'adj. 任意的，专断的<br>arbitrary decision' },
-    { en:'assess', cn:'v. 评估<br>assess the risk' },
-    { en:'attribute', cn:'v. 归因于<br>attribute success to effort' },
-    { en:'beneficial', cn:'adj. 有益的<br>beneficial effect' },
-    { en:'compensate', cn:'v. 补偿<br>compensate for loss' },
-    { en:'comprehensive', cn:'adj. 全面的<br>comprehensive review' },
-    { en:'compulsory', cn:'adj. 强制的，义务的<br>compulsory education' },
-    { en:'conceive', cn:'v. 构想<br>conceive an idea' },
-    { en:'consecutive', cn:'adj. 连续的<br>three consecutive days' },
-    { en:'conservative', cn:'adj. 保守的<br>conservative estimate' },
-    { en:'consolidate', cn:'v. 巩固，合并<br>consolidate knowledge' },
-  ];
+  // —— 六级高频词库：见 words.js（约500词，含同义/反义/衍生）——
 
   function todayKey() {
     const d = new Date();
@@ -639,7 +625,10 @@
     const w = WORDS[wordIndex];
     document.getElementById('wordEn').textContent = w.en;
     document.getElementById('wordCn').innerHTML = w.cn;
-    document.getElementById('wordCn').hidden = !wordFlipped;
+    document.getElementById('wordSyn').innerHTML = w.syn ? '<b>同义</b>' + w.syn : '';
+    document.getElementById('wordAnt').innerHTML = w.ant ? '<b>反义</b>' + w.ant : '';
+    document.getElementById('wordDer').innerHTML = w.der ? '<b>衍生</b>' + w.der : '';
+    document.getElementById('wordDetail').hidden = !wordFlipped;
     document.getElementById('wordTip').hidden = wordFlipped;
     document.getElementById('wordActions').hidden = !wordFlipped;
     document.getElementById('wordFinish').hidden = true;
