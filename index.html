@@ -283,11 +283,16 @@
     <h2><span class="dot" style="background:var(--cet)"></span>英语单词 · 连续打卡</h2>
     <div class="streak">
       <div><span class="big" id="streakDays">0</span> <span class="unit">天连续</span></div>
-      <div style="font-size:12px;color:var(--text-light)">今日已背
-        <input class="mini-input" id="wordInput" type="number" min="0" placeholder="0"> 个</div>
-      <button class="word-btn" id="wordBtn">📝 打卡今日单词</button>
+      <div style="font-size:12px;color:var(--text-light)">本轮进度
+        <b id="wordRoundInfo" style="color:var(--text)">0 / 0</b>
+      </div>
     </div>
-    <div class="hint">每天背满 50 个就点一下，连续不断更。</div>
+    <div class="streak" style="margin-top:12px">
+      <div style="font-size:12px;color:var(--text-light)">每日目标
+        <input class="mini-input" id="goalInput" type="number" min="5" max="200" style="width:64px"> 个</div>
+      <button class="word-btn" id="goalSave">保存目标</button>
+    </div>
+    <div class="hint">每天背固定个数的新词，第二天自动接着背下一批，一轮背完 990 个不重复。</div>
   </section>
 
   <!-- 周计划 -->
@@ -369,7 +374,7 @@
       <button class="ws-yes" id="wordYes">😀 认识</button>
     </div>
     <div class="ws-finish" id="wordFinish" hidden>
-      <div class="ws-finish-emoji">🎉</div>
+      <div class="ws-finish-emoji" id="wordFinishEmoji">🎉</div>
       <div class="ws-finish-text" id="wordFinishText"></div>
       <button class="ws-again" id="wordRestart">再背一轮</button>
       <button class="ws-back2" id="wordBack2">返回工作台</button>
@@ -422,6 +427,8 @@
       jobs: [],
       streak: 0,
       lastWordDate: '',
+      wordStudy: { index: 0, round: 1 },  // 背词进度：index 下次要背的下标，round 第几轮
+      wordGoal: 25,                        // 每日背词目标（个）
     };
   }
 
@@ -525,17 +532,13 @@
   function renderWords() {
     const t = today();
     document.getElementById('streakDays').textContent = state.streak;
-    document.getElementById('wordInput').value = t.words || '';
+    document.getElementById('goalInput').value = state.wordGoal || 25;
+    const done = Math.min(state.wordStudy.index, WORDS.length);
+    document.getElementById('wordRoundInfo').textContent = done + ' / ' + WORDS.length;
   }
-  document.getElementById('wordBtn').addEventListener('click', () => {
-    const t = today();
-    const n = parseInt(document.getElementById('wordInput').value, 10) || 0;
-    t.words = n;
-    if (n >= 50 && state.lastWordDate !== todayKey()) {
-      state.lastWordDate = todayKey();
-      state.streak = (state.streak || 0) + 1;
-    }
-    saveState(); renderWords();
+  document.getElementById('goalSave').addEventListener('click', () => {
+    const n = parseInt(document.getElementById('goalInput').value, 10);
+    if (n && n > 0) { state.wordGoal = n; saveState(); renderWords(); }
   });
 
   // —— 求职 ——
@@ -610,19 +613,24 @@
   });
 
   // —— 六级单词背诵 ——
-  let wordIndex = 0, wordFlipped = false;
+  let wordFlipped = false;
   function showWordStudy() {
     document.querySelector('.wrap').style.display = 'none';
     document.getElementById('wordStudyView').hidden = false;
-    wordIndex = 0; wordFlipped = false;
-    renderWord();
+    wordFlipped = false;
+    if (state.wordStudy.index >= WORDS.length) {
+      showRoundFinish();
+    } else {
+      renderWord();
+    }
   }
   function showMain() {
     document.getElementById('wordStudyView').hidden = true;
     document.querySelector('.wrap').style.display = '';
+    renderWords();
   }
   function renderWord() {
-    const w = WORDS[wordIndex];
+    const w = WORDS[state.wordStudy.index];
     document.getElementById('wordEn').textContent = w.en;
     document.getElementById('wordCn').innerHTML = w.cn;
     document.getElementById('wordSyn').innerHTML = w.syn ? '<b>同义</b>' + w.syn : '';
@@ -633,25 +641,44 @@
     document.getElementById('wordActions').hidden = !wordFlipped;
     document.getElementById('wordFinish').hidden = true;
     document.getElementById('wordCard').style.display = 'flex';
-    document.getElementById('wordProgress').textContent = (wordIndex + 1) + ' / ' + WORDS.length;
-    document.getElementById('wordToday').textContent = '今日已背 ' + (today().words || 0) + ' 个';
+    document.getElementById('wordProgress').textContent = (state.wordStudy.index + 1) + ' / ' + WORDS.length;
+    document.getElementById('wordToday').textContent = '今日已背 ' + (today().words || 0) + ' / ' + (state.wordGoal || 25);
+  }
+  function showRoundFinish() {
+    document.getElementById('wordCard').style.display = 'none';
+    document.getElementById('wordActions').hidden = true;
+    document.getElementById('wordFinish').hidden = false;
+    document.getElementById('wordFinishEmoji').textContent = '🏆';
+    document.getElementById('wordRestart').hidden = false;
+    document.getElementById('wordFinishText').textContent =
+      '第 ' + (state.wordStudy.round || 1) + ' 轮 ' + WORDS.length + ' 个词全部背完！';
+    document.getElementById('wordToday').textContent = '一轮完成，可开始新一轮';
+  }
+  function showGoalFinish() {
+    document.getElementById('wordCard').style.display = 'none';
+    document.getElementById('wordActions').hidden = true;
+    document.getElementById('wordFinish').hidden = false;
+    document.getElementById('wordFinishEmoji').textContent = '🎉';
+    document.getElementById('wordRestart').hidden = true;
+    document.getElementById('wordFinishText').textContent =
+      '今日目标 ' + (state.wordGoal || 25) + ' 个完成！明天继续背下一批。';
+    document.getElementById('wordToday').textContent = '今日已背 ' + (today().words || 0) + ' / ' + (state.wordGoal || 25);
   }
   function nextWord() {
     const t = today();
+    const goal = state.wordGoal || 25;
     t.words = (t.words || 0) + 1;
-    if (t.words >= 50 && state.lastWordDate !== todayKey()) {
+    state.wordStudy.index += 1;
+    if (t.words >= goal && state.lastWordDate !== todayKey()) {
       state.lastWordDate = todayKey();
       state.streak = (state.streak || 0) + 1;
     }
     saveState(); renderWords();
-    wordIndex++; wordFlipped = false;
-    if (wordIndex >= WORDS.length) {
-      document.getElementById('wordCard').style.display = 'none';
-      document.getElementById('wordActions').hidden = true;
-      document.getElementById('wordFinish').hidden = false;
-      document.getElementById('wordFinishText').textContent =
-        '本轮背完 ' + WORDS.length + ' 个词！今日累计 ' + (today().words || 0) + ' 个。';
-      document.getElementById('wordToday').textContent = '今日已背 ' + (today().words || 0) + ' 个';
+    wordFlipped = false;
+    if (state.wordStudy.index >= WORDS.length) {
+      showRoundFinish();
+    } else if (t.words >= goal) {
+      showGoalFinish();
     } else {
       renderWord();
     }
@@ -664,7 +691,9 @@
   document.getElementById('wordBack').addEventListener('click', showMain);
   document.getElementById('wordBack2').addEventListener('click', showMain);
   document.getElementById('wordRestart').addEventListener('click', () => {
-    wordIndex = 0; wordFlipped = false; renderWord();
+    state.wordStudy.index = 0;
+    state.wordStudy.round = (state.wordStudy.round || 1) + 1;
+    saveState(); wordFlipped = false; renderWord();
   });
 
   // 初始化
