@@ -104,6 +104,15 @@
     font-size: 11px; padding: 2px 9px; border-radius: 20px;
     color: #fff; background: var(--tc, var(--accent)); flex-shrink: 0;
   }
+  .task .x { border: none; background: none; color: var(--text-light); cursor: pointer; font-size: 15px; flex-shrink: 0; }
+  .task-edit-label { flex: 1; min-width: 80px; font-size: 13px; padding: 6px 9px; border: 2px solid var(--line); border-radius: 9px; outline: none; font-family: inherit; color: var(--text); }
+  .task-edit-label:focus { border-color: var(--accent); }
+  .task-edit-tag { width: 62px; font-size: 12px; padding: 6px 8px; border: 2px solid var(--line); border-radius: 9px; outline: none; font-family: inherit; color: var(--text); }
+  .task-edit-tag:focus { border-color: var(--accent); }
+  .task-add { display: flex; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); }
+  .task-add input { flex: 1; min-width: 80px; font-size: 13px; padding: 8px 11px; border: 2px solid var(--line); border-radius: 10px; outline: none; font-family: inherit; color: var(--text); }
+  .task-add input:focus { border-color: var(--accent); }
+  .task-add button { border: none; background: var(--accent); color: #fff; font-size: 13px; font-weight: 600; padding: 8px 14px; border-radius: 10px; cursor: pointer; }
 
   /* 里程碑进度 */
   .milestone-head {
@@ -300,7 +309,10 @@
 
   <!-- 今日打卡 -->
   <section class="card">
-    <h2><span class="dot" style="background:var(--accent)"></span>今日打卡 · 按优先级</h2>
+    <div class="milestone-head">
+      <h2 style="margin:0"><span class="dot" style="background:var(--accent)"></span>今日打卡 · 按优先级</h2>
+      <button class="word-btn" id="taskEditToggle" style="padding:5px 12px;font-size:12px">✏️ 编辑</button>
+    </div>
     <div id="taskList"></div>
   </section>
 
@@ -492,6 +504,9 @@
     { id:'photo1',label:'收集 1 个审美参考',        tag:'摄影', c:'var(--photo)' },
     { id:'review',label:'写今日复盘',               tag:'复盘', c:'var(--accent)' },
   ];
+  const TAG_COLORS = { 'AI':'var(--ai)', '六级':'var(--cet)', '雅思':'var(--ielts)', '自媒体':'var(--media)', '摄影':'var(--photo)', '复盘':'var(--accent)' };
+  function colorForTag(tag) { return TAG_COLORS[tag] || 'var(--accent)'; }
+  function esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
   const MOODS = ['😄','🙂','😐','😞','😵'];
 
@@ -518,6 +533,7 @@
       wordReview: [],                      // 生词本：点过「不认识」的词（en 数组）
       listening: { index: 0, round: 1 },   // 精听进度：index 下次要听的段，round 第几轮
       listeningSort: LISTENING_SORT,       // 精听排序版本（见上方常量）
+      dailyTasks: DAILY_TASKS.map(t => ({ id: t.id, label: t.label, tag: t.tag, c: t.c })), // 每日任务（可自我编辑）
     };
   }
 
@@ -559,37 +575,86 @@
   document.getElementById('dateLine').textContent =
     '今天是 ' + now.getFullYear() + ' 年 ' + (now.getMonth()+1) + ' 月 ' + now.getDate() + ' 日 · 星期' + week;
 
-  // —— 今日任务 ——
+  // —— 今日任务（可自我编辑）——
+  let taskEdit = false;   // true = 编辑模式（改名 / 删 / 加任务）
   function renderTasks() {
     const box = document.getElementById('taskList');
     box.innerHTML = '';
     const t = today();
-    DAILY_TASKS.forEach(task => {
+    const tasks = state.dailyTasks;
+    tasks.forEach((task, i) => {
       const done = !!t.tasks[task.id];
       const div = document.createElement('div');
       div.className = 'task' + (done ? ' done' : '');
       div.style.setProperty('--tc', task.c);
-      div.innerHTML =
-        '<div class="box"></div>' +
-        '<span class="label">' + task.label + '</span>' +
-        '<span class="tag">' + task.tag + '</span>';
-      div.addEventListener('click', () => {
-        t.tasks[task.id] = !t.tasks[task.id];
-        saveState(); renderTasks(); updateRing();
-      });
+      if (taskEdit) {
+        div.innerHTML =
+          '<div class="box" style="pointer-events:none"></div>' +
+          '<input class="task-edit-label" value="' + esc(task.label) + '">' +
+          '<input class="task-edit-tag" value="' + esc(task.tag) + '">' +
+          '<button class="x" data-i="' + i + '">✕</button>';
+        const labelInp = div.querySelector('.task-edit-label');
+        const tagInp = div.querySelector('.task-edit-tag');
+        labelInp.addEventListener('change', () => {
+          const v = labelInp.value.trim();
+          if (v) { task.label = v; saveState(); }
+        });
+        tagInp.addEventListener('change', () => {
+          const v = tagInp.value.trim();
+          if (v) { task.tag = v; task.c = colorForTag(v); saveState(); renderTasks(); }
+        });
+      } else {
+        div.innerHTML =
+          '<div class="box"></div>' +
+          '<span class="label">' + esc(task.label) + '</span>' +
+          '<span class="tag">' + esc(task.tag) + '</span>';
+        div.addEventListener('click', () => {
+          t.tasks[task.id] = !t.tasks[task.id];
+          saveState(); renderTasks(); updateRing();
+        });
+      }
       box.appendChild(div);
     });
+
+    if (taskEdit) {
+      const addRow = document.createElement('div');
+      addRow.className = 'task-add';
+      addRow.innerHTML =
+        '<input id="taskNewLabel" placeholder="新任务名称" maxlength="30">' +
+        '<button id="taskAddBtn">＋ 添加</button>';
+      box.appendChild(addRow);
+      box.querySelectorAll('.task .x').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.dailyTasks.splice(parseInt(btn.dataset.i, 10), 1);
+          saveState(); renderTasks(); updateRing();
+        });
+      });
+      document.getElementById('taskAddBtn').addEventListener('click', () => {
+        const inp = document.getElementById('taskNewLabel');
+        const v = inp.value.trim();
+        if (!v) return;
+        const tag = '自定义';
+        state.dailyTasks.push({ id: 't' + Date.now(), label: v, tag: tag, c: colorForTag(tag) });
+        saveState(); renderTasks(); updateRing();
+      });
+    }
   }
   function updateRing() {
     const t = today();
-    const total = DAILY_TASKS.length;
-    const done = DAILY_TASKS.filter(x => t.tasks[x.id]).length;
-    const p = Math.round(done / total * 100);
+    const tasks = state.dailyTasks;
+    const total = tasks.length;
+    const done = tasks.filter(x => t.tasks[x.id]).length;
+    const p = total ? Math.round(done / total * 100) : 0;
     document.getElementById('ring').style.setProperty('--p', p);
     document.getElementById('ringPct').textContent = p + '%';
     document.getElementById('doneCount').textContent = done;
     document.getElementById('totalCount').textContent = total;
   }
+  document.getElementById('taskEditToggle').addEventListener('click', () => {
+    taskEdit = !taskEdit;
+    document.getElementById('taskEditToggle').textContent = taskEdit ? '✅ 完成' : '✏️ 编辑';
+    renderTasks();
+  });
 
   // —— 里程碑 ——
   function renderMilestones() {
