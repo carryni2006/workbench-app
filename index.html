@@ -278,6 +278,8 @@
   }
   .ls-btn:active { opacity: .85; }
   .ls-btn.ghost { background: #fff; color: var(--text); box-shadow: 0 2px 8px rgba(150,130,110,.08); }
+  .ls-audio { width: 100%; max-width: 560px; margin: 4px 0 14px; }
+  .ls-ref { display: inline-block; font-size: 13px; color: var(--cet); text-decoration: underline; margin-bottom: 14px; }
 </style>
 </head>
 <body>
@@ -449,6 +451,8 @@
       <button class="ls-btn" id="listenPlay">🔊 播放</button>
       <button class="ls-btn ghost" id="listenReveal">👁 显示原文</button>
     </div>
+    <audio id="listenAudio" controls preload="metadata" class="ls-audio" hidden></audio>
+    <a id="listenRef" class="ls-ref" target="_blank" rel="noopener" hidden>📖 查看真题原文</a>
     <div class="ws-actions" id="listenActions" hidden>
       <button class="ws-no" id="listenAgain">🔁 再听一遍</button>
       <button class="ws-yes" id="listenDone">✅ 听懂了 · 下一段</button>
@@ -992,9 +996,21 @@
     document.getElementById('listenVocab').innerHTML = item.vocab ? '<b>📒 生词</b> ' + item.vocab : '';
     document.getElementById('listenText').hidden = true;
     document.getElementById('listenVocab').hidden = true;
-    document.getElementById('listenPlay').textContent = hasAudio ? '🔊 播放原声' : '🔊 播放（语音朗读）';
+    const audioEl = document.getElementById('listenAudio');
+    audioEl.pause();
+    if (hasAudio) {
+      audioEl.src = item.audio;
+      audioEl.hidden = false;
+      document.getElementById('listenPlay').hidden = true;
+    } else {
+      audioEl.hidden = true;
+      document.getElementById('listenPlay').hidden = false;
+      document.getElementById('listenPlay').textContent = '🔊 播放（语音朗读）';
+    }
     document.getElementById('listenReveal').hidden = !hasText;
     document.getElementById('listenReveal').textContent = '👁 显示原文';
+    const refEl = document.getElementById('listenRef');
+    if (item.ref) { refEl.href = item.ref; refEl.hidden = false; } else { refEl.hidden = true; }
     document.getElementById('listenProgress').textContent = '第 ' + (state.listening.round || 1) + ' 轮 · ' + (lsIdx + 1) + ' / ' + LISTENING.length;
     document.getElementById('listenToday').textContent = '今日已精听 ' + (today().listening || 0) + ' 段';
   }
@@ -1002,6 +1018,9 @@
     const item = LISTENING[lsIdx];
     document.getElementById('listenCard').style.display = 'none';
     document.getElementById('listenControls').style.display = 'none';
+    document.getElementById('listenAudio').hidden = true;
+    document.getElementById('listenAudio').pause();
+    document.getElementById('listenRef').hidden = true;
     document.getElementById('listenActions').hidden = true;
     document.getElementById('listenFinish').hidden = false;
     document.getElementById('listenFinishEmoji').textContent = '🎉';
@@ -1013,12 +1032,7 @@
   function playListening() {
     const item = LISTENING[lsIdx];
     if (item.audio) {
-      let a = document.getElementById('lsAudio');
-      if (!a) {
-        a = document.createElement('audio');
-        a.id = 'lsAudio';
-        document.body.appendChild(a);
-      }
+      const a = document.getElementById('listenAudio');
       a.src = item.audio;
       a.play().catch(function(){});
     } else {
@@ -1043,7 +1057,15 @@
     document.getElementById('listenActions').hidden = !lsRevealed;
     document.getElementById('listenReveal').textContent = lsRevealed ? '🙈 隐藏原文' : '👁 显示原文';
   });
-  document.getElementById('listenAgain').addEventListener('click', playListening);
+  document.getElementById('listenAgain').addEventListener('click', () => {
+    if (LISTENING[lsIdx].audio) {
+      const a = document.getElementById('listenAudio');
+      a.currentTime = 0;
+      a.play().catch(function(){});
+    } else {
+      playListening();
+    }
+  });
   document.getElementById('listenDone').addEventListener('click', () => {
     today().listening = 1;
     saveState();

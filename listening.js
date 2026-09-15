@@ -9,15 +9,20 @@
 const LISTENING = [
   // —— 2018–2019 · 真题原声（真实录音）——
   { year: '2018年6月', set: '第一套', section: '全套听力', topic: '真题原声 · Section A/B/C 盲听',
-    text: '', audio: 'audio/201806cet61.mp3', vocab: '' },
+    text: '', audio: 'audio/201806cet61.mp3', vocab: '',
+    ref: 'http://www.hxen.com/englishlistening/CET6/zhenti/2019-12-07/528328.html' },
   { year: '2018年6月', set: '第二套', section: '全套听力', topic: '真题原声 · Section A/B/C 盲听',
-    text: '', audio: 'audio/201806cet62.mp3', vocab: '' },
+    text: '', audio: 'audio/201806cet62.mp3', vocab: '',
+    ref: 'http://www.hxen.com/englishlistening/CET6/zhenti/2019-12-07/528329.html' },
   { year: '2018年12月', set: '第一套', section: '全套听力', topic: '真题原声 · Section A/B/C 盲听',
-    text: '', audio: 'audio/201812cet61.mp3', vocab: '' },
+    text: '', audio: 'audio/201812cet61.mp3', vocab: '',
+    ref: 'http://www.hxen.com/englishlistening/CET6/zhenti/2019-12-07/528330.html' },
   { year: '2019年6月', set: '第一套', section: '全套听力', topic: '真题原声 · Section A/B/C 盲听',
-    text: '', audio: 'audio/201906cet61.mp3', vocab: '' },
+    text: '', audio: 'audio/201906cet61.mp3', vocab: '',
+    ref: 'http://www.hxen.com/englishlistening/CET6/zhenti/2020-02-29/532322.html' },
   { year: '2019年12月', set: '第二套', section: '全套听力', topic: '真题原声 · Section A/B/C 盲听',
-    text: '', audio: 'audio/201912cet62.mp3', vocab: '' },
+    text: '', audio: 'audio/201912cet62.mp3', vocab: '',
+    ref: 'http://www.hxen.com/englishlistening/CET6/zhenti/2020-12-26/550139.html' },
 
   // —— 2020–2026 · 待补原声（当前为模拟题文字 + 语音朗读）——
   { year: '2020年12月', set: '第一套', section: 'Section B · 短文', topic: '博物馆的数字转型（模拟题·待补原声）',
