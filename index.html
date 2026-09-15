@@ -710,6 +710,7 @@
     document.getElementById('wordFinish').hidden = false;
     document.getElementById('wordFinishEmoji').textContent = '🏆';
     document.getElementById('wordRestart').hidden = false;
+    document.getElementById('wordRestart').textContent = '再背一轮';
     document.getElementById('wordFinishText').textContent =
       '第 ' + (state.wordStudy.round || 1) + ' 轮 ' + WORDS.length + ' 个词全部背完！';
     document.getElementById('wordToday').textContent = '一轮完成，可开始新一轮';
@@ -780,11 +781,20 @@
       document.getElementById('wordActions').hidden = true;
       document.getElementById('reviewActions').hidden = true;
       document.getElementById('wordFinish').hidden = false;
-      document.getElementById('wordFinishEmoji').textContent = '🎉';
-      document.getElementById('wordRestart').hidden = true;
-      document.getElementById('wordFinishText').textContent = '生词本已复习完，继续保持！';
-      document.getElementById('wordProgress').textContent = '复习完成';
-      document.getElementById('wordToday').textContent = '共 ' + list.length + ' 个生词';
+      if (list.length === 0) {
+        document.getElementById('wordFinishEmoji').textContent = '🎉';
+        document.getElementById('wordRestart').hidden = true;
+        document.getElementById('wordFinishText').textContent = '生词本已复习完，继续保持！';
+        document.getElementById('wordProgress').textContent = '复习完成';
+        document.getElementById('wordToday').textContent = '生词本已清空';
+      } else {
+        document.getElementById('wordFinishEmoji').textContent = '💪';
+        document.getElementById('wordRestart').hidden = false;
+        document.getElementById('wordRestart').textContent = '再复习一轮';
+        document.getElementById('wordFinishText').textContent = '本轮还有 ' + list.length + ' 个词没记住，再巩固一遍？';
+        document.getElementById('wordProgress').textContent = '一轮结束';
+        document.getElementById('wordToday').textContent = '还剩 ' + list.length + ' 个';
+      }
       return;
     }
     const en = list[reviewIndex];
@@ -866,9 +876,13 @@
   document.getElementById('wordBack').addEventListener('click', showMain);
   document.getElementById('wordBack2').addEventListener('click', showMain);
   document.getElementById('wordRestart').addEventListener('click', () => {
-    state.wordStudy.index = 0;
-    state.wordStudy.round = (state.wordStudy.round || 1) + 1;
-    saveState(); wordFlipped = false; renderWord();
+    if (reviewMode) {
+      reviewIndex = 0; wordFlipped = false; renderReviewWord();
+    } else {
+      state.wordStudy.index = 0;
+      state.wordStudy.round = (state.wordStudy.round || 1) + 1;
+      saveState(); wordFlipped = false; renderWord();
+    }
   });
 
   // 初始化
