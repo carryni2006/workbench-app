@@ -1,9 +1,9 @@
 // 六级真题精听 · 语料库
 // 每段：year 年份 / set 套别 / section 题型 / topic 话题 / text 原文 / audio 音频路径 / vocab 生词
 //
-// 【真题原声】2018–2019 已接入真实录音（文件在 audio/ 目录，音频来源网络公开渠道）。
+// 【真题原声】2018–2019、2024年12月 已接入真实录音（文件在 audio/ 目录）。
 //   audio 填本地相对路径即可自动播放原声；text 留空 = 纯盲听（无原文）。
-// 【待补原声】2020–2026 目前为「模拟题文字 + 浏览器语音朗读」占位。
+// 【待补原声】2020–2023、2025–2026 目前为「模拟题文字 + 浏览器语音朗读」占位。
 //   拿到对应年份原声 mp3 后：把文件放进 audio/，audio 填上路径（如 'audio/202312cet61.mp3'），text 清空即可。
 
 const LISTENING = [
@@ -43,9 +43,9 @@ const LISTENING = [
   { year: '2024年6月', set: '第一套', section: 'Section C · 讲座', topic: '耐心与幸福感（模拟题·待补原声）',
     text: 'Recent research suggests that patience is closely linked to happiness. In one study, people who were willing to wait for a larger reward later reported higher life satisfaction than those who preferred a smaller reward immediately. Patience, the researchers argue, is not just a virtue but a skill that can be practiced.',
     audio: '', vocab: 'patience n. 耐心；virtue n. 美德；life satisfaction 生活满意度' },
-  { year: '2024年12月', set: '第一套', section: 'Section C · 讲座', topic: '七条普世道德规则（模拟题·待补原声）',
-    text: 'Anthropologists have found that many human societies, however different, share a small set of moral rules. These include helping your family, returning favors, and being courageous. The discovery suggests that a sense of right and wrong is deeply rooted in human nature, rather than purely shaped by culture.',
-    audio: '', vocab: 'anthropologist n. 人类学家；moral adj. 道德的；courageous adj. 勇敢的' },
+  { year: '2024年12月', set: '第一套', section: '全套听力', topic: '真题原声 · Section A/B/C 盲听',
+    text: '', audio: 'audio/202412cet61.mp3', vocab: '',
+    ref: '' },
   { year: '2025年6月', set: '第一套', section: 'Section B · 短文', topic: '人工智能与就业（模拟题·待补原声）',
     text: 'As artificial intelligence becomes more capable, many workers worry about losing their jobs. Economists point out, however, that new technology has always created new kinds of work. The key, they say, is for workers to keep learning and to develop skills that machines cannot easily copy, such as creativity and empathy.',
     audio: '', vocab: 'artificial intelligence 人工智能；empathy n. 同理心；capable adj. 有能力的' },
