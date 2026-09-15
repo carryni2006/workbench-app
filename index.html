@@ -139,6 +139,7 @@
     padding: 10px 22px; border-radius: 30px; cursor: pointer;
   }
   .word-btn:active { opacity: .8; }
+  .word-btn:disabled { opacity: .45; cursor: not-allowed; }
   .mini-input {
     border: 2px solid var(--line); border-radius: 12px; padding: 9px 12px; font-size: 14px;
     width: 90px; outline: none; font-family: inherit; color: var(--text);
@@ -292,6 +293,11 @@
         <input class="mini-input" id="goalInput" type="number" min="5" max="200" style="width:64px"> 个</div>
       <button class="word-btn" id="goalSave">保存目标</button>
     </div>
+    <div class="streak" style="margin-top:12px">
+      <div style="font-size:12px;color:var(--text-light)">生词本
+        <b id="wordReviewCount" style="color:var(--text)">0</b> 个</div>
+      <button class="word-btn" id="reviewBtn">📖 复习生词</button>
+    </div>
     <div class="hint">每天背固定个数的新词，第二天自动接着背下一批，一轮背完 990 个不重复。</div>
   </section>
 
@@ -373,6 +379,10 @@
       <button class="ws-no" id="wordNo">😕 不认识</button>
       <button class="ws-yes" id="wordYes">😀 认识</button>
     </div>
+    <div class="ws-actions" id="reviewActions" hidden>
+      <button class="ws-no" id="reviewStill">😕 还不熟</button>
+      <button class="ws-yes" id="reviewGot">😀 记住了</button>
+    </div>
     <div class="ws-finish" id="wordFinish" hidden>
       <div class="ws-finish-emoji" id="wordFinishEmoji">🎉</div>
       <div class="ws-finish-text" id="wordFinishText"></div>
@@ -429,6 +439,7 @@
       lastWordDate: '',
       wordStudy: { index: 0, round: 1 },  // 背词进度：index 下次要背的下标，round 第几轮
       wordGoal: 25,                        // 每日背词目标（个）
+      wordReview: [],                      // 生词本：点过「不认识」的词（en 数组）
     };
   }
 
@@ -535,11 +546,15 @@
     document.getElementById('goalInput').value = state.wordGoal || 25;
     const done = Math.min(state.wordStudy.index, WORDS.length);
     document.getElementById('wordRoundInfo').textContent = done + ' / ' + WORDS.length;
+    const reviewCount = (state.wordReview || []).length;
+    document.getElementById('wordReviewCount').textContent = reviewCount;
+    document.getElementById('reviewBtn').disabled = reviewCount === 0;
   }
   document.getElementById('goalSave').addEventListener('click', () => {
     const n = parseInt(document.getElementById('goalInput').value, 10);
     if (n && n > 0) { state.wordGoal = n; saveState(); renderWords(); }
   });
+  document.getElementById('reviewBtn').addEventListener('click', () => showReview());
 
   // —— 求职 ——
   function renderJobs() {
@@ -614,7 +629,10 @@
 
   // —— 六级单词背诵 ——
   let wordFlipped = false;
+  let reviewMode = false;   // true = 正在复习生词本
+  let reviewIndex = 0;      // 复习进度（生词本内下标）
   function showWordStudy() {
+    reviewMode = false;
     document.querySelector('.wrap').style.display = 'none';
     document.getElementById('wordStudyView').hidden = false;
     wordFlipped = false;
@@ -625,6 +643,7 @@
     }
   }
   function showMain() {
+    reviewMode = false;
     document.getElementById('wordStudyView').hidden = true;
     document.querySelector('.wrap').style.display = '';
     renderWords();
@@ -639,6 +658,7 @@
     document.getElementById('wordDetail').hidden = !wordFlipped;
     document.getElementById('wordTip').hidden = wordFlipped;
     document.getElementById('wordActions').hidden = !wordFlipped;
+    document.getElementById('reviewActions').hidden = true;
     document.getElementById('wordFinish').hidden = true;
     document.getElementById('wordCard').style.display = 'flex';
     document.getElementById('wordProgress').textContent = (state.wordStudy.index + 1) + ' / ' + WORDS.length;
@@ -684,10 +704,65 @@
     }
   }
   document.getElementById('wordCard').addEventListener('click', () => {
-    if (!wordFlipped) { wordFlipped = true; renderWord(); }
+    if (!wordFlipped) { wordFlipped = true; if (reviewMode) renderReviewWord(); else renderWord(); }
   });
   document.getElementById('wordYes').addEventListener('click', nextWord);
-  document.getElementById('wordNo').addEventListener('click', nextWord);
+  document.getElementById('wordNo').addEventListener('click', () => {
+    const w = WORDS[state.wordStudy.index];
+    if (w && !state.wordReview.includes(w.en)) {
+      state.wordReview.push(w.en);
+      saveState();
+    }
+    nextWord();
+  });
+  // —— 生词本复习 ——
+  function showReview() {
+    if (!(state.wordReview || []).length) return;
+    reviewMode = true;
+    reviewIndex = 0;
+    wordFlipped = false;
+    document.querySelector('.wrap').style.display = 'none';
+    document.getElementById('wordStudyView').hidden = false;
+    renderReviewWord();
+  }
+  function renderReviewWord() {
+    const list = state.wordReview || [];
+    if (reviewIndex >= list.length) {
+      document.getElementById('wordCard').style.display = 'none';
+      document.getElementById('wordActions').hidden = true;
+      document.getElementById('reviewActions').hidden = true;
+      document.getElementById('wordFinish').hidden = false;
+      document.getElementById('wordFinishEmoji').textContent = '🎉';
+      document.getElementById('wordRestart').hidden = true;
+      document.getElementById('wordFinishText').textContent = '生词本已复习完，继续保持！';
+      document.getElementById('wordProgress').textContent = '复习完成';
+      document.getElementById('wordToday').textContent = '共 ' + list.length + ' 个生词';
+      return;
+    }
+    const en = list[reviewIndex];
+    const w = WORDS.find(x => x.en === en);
+    document.getElementById('wordEn').textContent = w ? w.en : en;
+    document.getElementById('wordCn').innerHTML = w ? w.cn : '';
+    document.getElementById('wordSyn').innerHTML = (w && w.syn) ? '<b>同义</b>' + w.syn : '';
+    document.getElementById('wordAnt').innerHTML = (w && w.ant) ? '<b>反义</b>' + w.ant : '';
+    document.getElementById('wordDer').innerHTML = (w && w.der) ? '<b>衍生</b>' + w.der : '';
+    document.getElementById('wordDetail').hidden = !wordFlipped;
+    document.getElementById('wordTip').hidden = wordFlipped;
+    document.getElementById('wordActions').hidden = true;
+    document.getElementById('reviewActions').hidden = !wordFlipped;
+    document.getElementById('wordFinish').hidden = true;
+    document.getElementById('wordCard').style.display = 'flex';
+    document.getElementById('wordProgress').textContent = (reviewIndex + 1) + ' / ' + list.length;
+    document.getElementById('wordToday').textContent = '生词复习中';
+  }
+  document.getElementById('reviewGot').addEventListener('click', () => {
+    state.wordReview.splice(reviewIndex, 1);   // 记住了：移出生词本，index 自动指向下一个
+    saveState(); renderWords(); wordFlipped = false; renderReviewWord();
+  });
+  document.getElementById('reviewStill').addEventListener('click', () => {
+    reviewIndex += 1;                           // 还不熟：保留，跳到下一个
+    wordFlipped = false; renderReviewWord();
+  });
   document.getElementById('wordBack').addEventListener('click', showMain);
   document.getElementById('wordBack2').addEventListener('click', showMain);
   document.getElementById('wordRestart').addEventListener('click', () => {
