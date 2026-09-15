@@ -256,6 +256,28 @@
   }
   .ws-again { background: var(--cet); color: #fff; }
   .ws-back2 { background: #fff; color: var(--text); }
+
+  /* 真题精听 */
+  #listeningView {
+    position: fixed; inset: 0; background: linear-gradient(180deg, #f6f1ea 0%, #f1ece4 100%);
+    padding: 24px 16px; overflow-y: auto; z-index: 10;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  #listeningView[hidden] { display: none; }
+  .ls-card { min-height: 300px; }
+  .ls-meta { font-size: 12px; color: var(--text-light); margin-bottom: 6px; }
+  .ls-topic { font-size: 15px; font-weight: 700; color: var(--cet); margin-bottom: 16px; line-height: 1.5; }
+  .ls-text { font-size: 14px; line-height: 1.9; text-align: left; color: var(--text); white-space: pre-wrap; word-break: break-word; }
+  .ls-vocab { font-size: 12px; color: var(--text-light); text-align: left; margin-top: 14px; line-height: 1.7; width: 100%; }
+  .ls-vocab b { color: var(--cet); font-weight: 600; }
+  .ls-vocab:empty { display: none; }
+  .ls-controls { display: flex; gap: 12px; width: 100%; max-width: 560px; margin-bottom: 14px; }
+  .ls-btn {
+    flex: 1; border: none; background: var(--cet); color: #fff; font-size: 15px; font-weight: 600;
+    padding: 14px; border-radius: 16px; cursor: pointer;
+  }
+  .ls-btn:active { opacity: .85; }
+  .ls-btn.ghost { background: #fff; color: var(--text); box-shadow: 0 2px 8px rgba(150,130,110,.08); }
 </style>
 </head>
 <body>
@@ -407,7 +429,41 @@
   </div>
 </section>
 
+<!-- 六级真题精听界面 -->
+<section id="listeningView" hidden>
+  <div class="ws-inner">
+    <div class="ws-top">
+      <button class="ws-back" id="listenBack">← 返回</button>
+      <div class="ws-info">
+        <span class="ws-prog" id="listenProgress">1 / 14</span>
+        <span id="listenToday">今日已精听 0 段</span>
+      </div>
+    </div>
+    <div class="ws-card ls-card" id="listenCard">
+      <div class="ls-meta" id="listenMeta"></div>
+      <div class="ls-topic" id="listenTopic"></div>
+      <div class="ls-text" id="listenText" hidden></div>
+      <div class="ls-vocab" id="listenVocab"></div>
+    </div>
+    <div class="ls-controls" id="listenControls">
+      <button class="ls-btn" id="listenPlay">🔊 播放</button>
+      <button class="ls-btn ghost" id="listenReveal">👁 显示原文</button>
+    </div>
+    <div class="ws-actions" id="listenActions" hidden>
+      <button class="ws-no" id="listenAgain">🔁 再听一遍</button>
+      <button class="ws-yes" id="listenDone">✅ 听懂了 · 下一段</button>
+    </div>
+    <div class="ws-finish" id="listenFinish" hidden>
+      <div class="ws-finish-emoji" id="listenFinishEmoji">🎉</div>
+      <div class="ws-finish-text" id="listenFinishText"></div>
+      <button class="ws-again" id="listenRestart">再听一轮</button>
+      <button class="ws-back2" id="listenBack2">返回工作台</button>
+    </div>
+  </div>
+</section>
+
 <script src="words.js"></script>
+<script src="listening.js"></script>
 <script>
 (function () {
   const STORE = 'workbench_state_v1';
@@ -455,6 +511,7 @@
       wordStudy: { index: 0, round: 1 },  // 背词进度：index 下次要背的下标，round 第几轮
       wordGoal: 25,                        // 每日背词目标（个）
       wordReview: [],                      // 生词本：点过「不认识」的词（en 数组）
+      listening: { index: 0, round: 1 },   // 精听进度：index 下次要听的段，round 第几轮
     };
   }
 
@@ -471,9 +528,10 @@
     try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {}
   }
   function today() {
-    if (!state.daily[todayKey()]) state.daily[todayKey()] = { tasks:{}, words:0, wordsList:[], mood:'', review:'' };
+    if (!state.daily[todayKey()]) state.daily[todayKey()] = { tasks:{}, words:0, wordsList:[], listening:0, mood:'', review:'' };
     const t = state.daily[todayKey()];
     if (!t.wordsList) t.wordsList = [];   // 兼容旧数据
+    if (t.listening == null) t.listening = 0;
     return t;
   }
 
@@ -551,6 +609,13 @@
         btn.textContent = '📖 进入单词背诵';
         btn.addEventListener('click', () => showWordStudy());
         card.appendChild(btn);
+        const btn2 = document.createElement('button');
+        btn2.className = 'ms-study-btn';
+        btn2.style.marginTop = '8px';
+        btn2.style.background = 'var(--ielts)';
+        btn2.textContent = '🎧 进入真题精听';
+        btn2.addEventListener('click', () => showListening());
+        card.appendChild(btn2);
       }
       grid.appendChild(card);
     });
@@ -885,6 +950,109 @@
       saveState(); wordFlipped = false; renderWord();
     }
   });
+
+  // —— 真题精听 ——
+  let lsIdx = 0;          // 当前展示的段落下标
+  let lsRevealed = false; // 是否已显示原文
+  function showListening() {
+    document.querySelector('.wrap').style.display = 'none';
+    document.getElementById('listeningView').hidden = false;
+    const t = today();
+    if (t.listening >= 1) {           // 今日已完成 → 完成态
+      lsIdx = (t.listeningIndex == null) ? 0 : t.listeningIndex;
+      renderListeningDone();
+      return;
+    }
+    if (t.listeningIndex == null) {   // 首次进入今天 → 分配一段新的
+      const i = state.listening.index || 0;
+      t.listeningIndex = i;
+      state.listening.index = i + 1;
+      if (state.listening.index >= LISTENING.length) {
+        state.listening.index = 0;
+        state.listening.round = (state.listening.round || 1) + 1;
+      }
+      saveState();
+    }
+    lsIdx = t.listeningIndex;
+    renderListening();
+  }
+  function renderListening() {
+    const item = LISTENING[lsIdx];
+    lsRevealed = false;
+    document.getElementById('listenCard').style.display = '';
+    document.getElementById('listenControls').style.display = '';
+    document.getElementById('listenActions').hidden = true;
+    document.getElementById('listenFinish').hidden = true;
+    document.getElementById('listenMeta').textContent = item.year + ' · ' + item.set + ' · ' + item.section;
+    document.getElementById('listenTopic').textContent = '🎯 ' + item.topic;
+    document.getElementById('listenText').textContent = item.text;
+    document.getElementById('listenVocab').innerHTML = item.vocab ? '<b>📒 生词</b> ' + item.vocab : '';
+    document.getElementById('listenText').hidden = true;
+    document.getElementById('listenVocab').hidden = true;
+    document.getElementById('listenReveal').textContent = '👁 显示原文';
+    document.getElementById('listenProgress').textContent = '第 ' + (state.listening.round || 1) + ' 轮 · ' + (lsIdx + 1) + ' / ' + LISTENING.length;
+    document.getElementById('listenToday').textContent = '今日已精听 ' + (today().listening || 0) + ' 段';
+  }
+  function renderListeningDone() {
+    const item = LISTENING[lsIdx];
+    document.getElementById('listenCard').style.display = 'none';
+    document.getElementById('listenControls').style.display = 'none';
+    document.getElementById('listenActions').hidden = true;
+    document.getElementById('listenFinish').hidden = false;
+    document.getElementById('listenFinishEmoji').textContent = '🎉';
+    document.getElementById('listenFinishText').textContent = '今日精听已完成 · ' + item.topic;
+    document.getElementById('listenRestart').textContent = '🔁 再听一遍今天的';
+    document.getElementById('listenProgress').textContent = '第 ' + (state.listening.round || 1) + ' 轮 · ' + (lsIdx + 1) + ' / ' + LISTENING.length;
+    document.getElementById('listenToday').textContent = '今日已精听 1 段';
+  }
+  function playListening() {
+    const item = LISTENING[lsIdx];
+    if (item.audio) {
+      let a = document.getElementById('lsAudio');
+      if (!a) {
+        a = document.createElement('audio');
+        a.id = 'lsAudio';
+        document.body.appendChild(a);
+      }
+      a.src = item.audio;
+      a.play().catch(function(){});
+    } else {
+      if (!('speechSynthesis' in window)) return;
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(item.text.replace(/\n/g, ' '));
+      u.lang = 'en-US';
+      u.rate = 0.95;
+      speechSynthesis.speak(u);
+    }
+  }
+  function showListeningBack() {
+    document.getElementById('listeningView').hidden = true;
+    document.querySelector('.wrap').style.display = '';
+    renderWords();
+  }
+  document.getElementById('listenPlay').addEventListener('click', playListening);
+  document.getElementById('listenReveal').addEventListener('click', () => {
+    lsRevealed = !lsRevealed;
+    document.getElementById('listenText').hidden = !lsRevealed;
+    document.getElementById('listenVocab').hidden = !lsRevealed;
+    document.getElementById('listenActions').hidden = !lsRevealed;
+    document.getElementById('listenReveal').textContent = lsRevealed ? '🙈 隐藏原文' : '👁 显示原文';
+  });
+  document.getElementById('listenAgain').addEventListener('click', playListening);
+  document.getElementById('listenDone').addEventListener('click', () => {
+    today().listening = 1;
+    saveState();
+    renderListeningDone();
+  });
+  document.getElementById('listenRestart').addEventListener('click', () => {
+    const t = today();
+    t.listening = 0;
+    saveState();
+    lsIdx = (t.listeningIndex == null) ? lsIdx : t.listeningIndex;
+    renderListening();
+  });
+  document.getElementById('listenBack').addEventListener('click', showListeningBack);
+  document.getElementById('listenBack2').addEventListener('click', showListeningBack);
 
   // 初始化
   renderTasks();
