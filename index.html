@@ -243,6 +243,7 @@
     border-radius: 16px; cursor: pointer;
   }
   .ws-actions button:disabled { opacity: .45; cursor: not-allowed; }
+  .ws-actions .ws-nav { background: #f0ece6; color: var(--text-light); }
   .ws-no { background: #f0e4e0; color: #b06060; }
   .ws-yes { background: var(--cet); color: #fff; }
   .ws-finish { text-align: center; padding: 40px 20px; }
@@ -392,7 +393,8 @@
       <button class="ws-yes" id="reviewGot">😀 记住了</button>
     </div>
     <div class="ws-actions" id="browseActions" hidden>
-      <button class="ws-no" id="browsePrev">← 上一个</button>
+      <button class="ws-nav" id="browsePrev">← 上一个</button>
+      <button class="ws-no" id="browseAdd">😕 没记住</button>
       <button class="ws-yes" id="browseNext">下一个 →</button>
     </div>
     <div class="ws-finish" id="wordFinish" hidden>
@@ -842,12 +844,24 @@
     document.getElementById('wordToday').textContent = '今日已背 ' + list.length + ' 个';
     document.getElementById('browsePrev').disabled = browseIndex === 0;
     document.getElementById('browseNext').disabled = browseIndex === list.length - 1;
+    const inReview = state.wordReview.indexOf(en) !== -1;
+    const addBtn = document.getElementById('browseAdd');
+    addBtn.textContent = inReview ? '✓ 已收进生词本' : '😕 没记住';
+    addBtn.disabled = inReview;
   }
   document.getElementById('browsePrev').addEventListener('click', () => {
     if (browseIndex > 0) { browseIndex -= 1; wordFlipped = false; renderBrowseWord(); }
   });
   document.getElementById('browseNext').addEventListener('click', () => {
     if (browseIndex < (today().wordsList || []).length - 1) { browseIndex += 1; wordFlipped = false; renderBrowseWord(); }
+  });
+  document.getElementById('browseAdd').addEventListener('click', () => {
+    const en = (today().wordsList || [])[browseIndex];
+    if (!en) return;
+    if (!state.wordReview.includes(en)) {
+      state.wordReview.push(en);
+      saveState(); renderWords(); renderBrowseWord();
+    }
   });
   document.getElementById('wordBack').addEventListener('click', showMain);
   document.getElementById('wordBack2').addEventListener('click', showMain);
