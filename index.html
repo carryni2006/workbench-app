@@ -981,14 +981,19 @@
     lsRevealed = false;
     document.getElementById('listenCard').style.display = '';
     document.getElementById('listenControls').style.display = '';
-    document.getElementById('listenActions').hidden = true;
     document.getElementById('listenFinish').hidden = true;
-    document.getElementById('listenMeta').textContent = item.year + ' · ' + item.set + ' · ' + item.section;
+    const hasAudio = !!item.audio;
+    const hasText = !!item.text;
+    // 原声：直接显示「再听一遍/听懂了」；模拟题：等点「显示原文」后再显示
+    document.getElementById('listenActions').hidden = !hasAudio;
+    document.getElementById('listenMeta').textContent = item.year + ' · ' + item.set + ' · ' + item.section + (hasAudio ? ' · 🎧 真题原声' : '');
     document.getElementById('listenTopic').textContent = '🎯 ' + item.topic;
     document.getElementById('listenText').textContent = item.text;
     document.getElementById('listenVocab').innerHTML = item.vocab ? '<b>📒 生词</b> ' + item.vocab : '';
     document.getElementById('listenText').hidden = true;
     document.getElementById('listenVocab').hidden = true;
+    document.getElementById('listenPlay').textContent = hasAudio ? '🔊 播放原声' : '🔊 播放（语音朗读）';
+    document.getElementById('listenReveal').hidden = !hasText;
     document.getElementById('listenReveal').textContent = '👁 显示原文';
     document.getElementById('listenProgress').textContent = '第 ' + (state.listening.round || 1) + ' 轮 · ' + (lsIdx + 1) + ' / ' + LISTENING.length;
     document.getElementById('listenToday').textContent = '今日已精听 ' + (today().listening || 0) + ' 段';
