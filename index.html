@@ -471,6 +471,7 @@
 <script>
 (function () {
   const STORE = 'workbench_state_v1';
+  const LISTENING_SORT = 2;   // 精听排序版本：1=旧版(旧年份在前)，2=最新年份在前。改了排序就 +1 触发一次性重置
 
   // —— 里程碑（固定规划内容）——
   const MILESTONES = {
@@ -516,6 +517,7 @@
       wordGoal: 25,                        // 每日背词目标（个）
       wordReview: [],                      // 生词本：点过「不认识」的词（en 数组）
       listening: { index: 0, round: 1 },   // 精听进度：index 下次要听的段，round 第几轮
+      listeningSort: LISTENING_SORT,       // 精听排序版本（见上方常量）
     };
   }
 
@@ -524,7 +526,19 @@
   function loadState() {
     try {
       const raw = localStorage.getItem(STORE);
-      if (raw) return Object.assign(defaultState(), JSON.parse(raw));
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        // 一次性迁移：精听排序改为「最新在前」后，把进度指针重置到最新一段
+        if ((parsed.listeningSort || 1) < LISTENING_SORT) {
+          parsed.listening = { index: 0, round: 1 };
+          parsed.listeningSort = LISTENING_SORT;
+          const dk = todayKey();
+          if (parsed.daily && parsed.daily[dk] && !parsed.daily[dk].listening) {
+            parsed.daily[dk].listeningIndex = null; // 今天未完成的，下次重新从最新分配
+          }
+        }
+        return Object.assign(defaultState(), parsed);
+      }
     } catch (e) {}
     return defaultState();
   }
