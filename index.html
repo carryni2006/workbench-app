@@ -22,6 +22,7 @@
     --photo: #c0a382;   /* 奶茶 */
     --job: #9b8a7a;     /* 灰棕 */
     --accent: #b58a8a;  /* 主强调 */
+    --warn: #c5807a;    /* 柔和提醒红（重要待办） */
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -188,6 +189,19 @@
   }
   .status.done { background: var(--cet); color: #fff; }
 
+  /* 重要待办 */
+  .imp-item .chk {
+    width: 18px; height: 18px; border-radius: 6px; border: 2px solid var(--line);
+    display: grid; place-items: center; font-size: 12px; color: #fff; flex-shrink: 0; cursor: pointer;
+    transition: all .15s;
+  }
+  .imp-item.done .chk { background: var(--warn); border-color: var(--warn); }
+  .imp-item.done .chk::after { content: "✓"; }
+  .imp-item .imp-text { flex: 1; font-size: 13px; min-width: 0; }
+  .imp-item.done .imp-text { text-decoration: line-through; color: var(--text-light); }
+  .imp-item .due { font-size: 11px; padding: 2px 8px; border-radius: 20px; background: #efe8df; color: var(--text-light); flex-shrink: 0; }
+  .imp-item .due.overdue { background: #f3e0dd; color: #c06060; font-weight: 600; }
+
   /* 复盘 */
   .moods { display: flex; gap: 10px; margin-bottom: 12px; }
   .mood {
@@ -314,6 +328,20 @@
       <button class="word-btn" id="taskEditToggle" style="padding:5px 12px;font-size:12px">✏️ 编辑</button>
     </div>
     <div id="taskList"></div>
+  </section>
+
+  <!-- 重要待办 -->
+  <section class="card">
+    <div class="milestone-head">
+      <h2 style="margin:0"><span class="dot" style="background:var(--warn)"></span>重要待办 · 提醒</h2>
+      <span class="hint" id="importantCount" style="margin:0"></span>
+    </div>
+    <div class="row-form">
+      <input id="importantText" placeholder="待做的重要事情，如：报名六级 / 投递 XX 简历" maxlength="60">
+      <input id="importantDue" type="date" style="flex:0 0 auto; width:140px; min-width:130px">
+      <button class="add-btn" id="importantAdd" style="background:var(--warn)">+ 添加</button>
+    </div>
+    <ul class="item-list" id="importantList"></ul>
   </section>
 
   <!-- 主线进度 -->
@@ -534,6 +562,7 @@
       listening: { index: 0, round: 1 },   // 精听进度：index 下次要听的段，round 第几轮
       listeningSort: LISTENING_SORT,       // 精听排序版本（见上方常量）
       dailyTasks: DAILY_TASKS.map(t => ({ id: t.id, label: t.label, tag: t.tag, c: t.c })), // 每日任务（可自我编辑）
+      important: [],  // 重要待办：{ id, text, due, done }
     };
   }
 
@@ -789,6 +818,50 @@
     if (!v) return;
     state.ideas.unshift(v);
     inp.value = ''; saveState(); renderIdeas();
+  });
+
+  // —— 重要待办 ——
+  function renderImportant() {
+    const ul = document.getElementById('importantList');
+    ul.innerHTML = '';
+    const arr = state.important || [];
+    const pending = arr.filter(x => !x.done).length;
+    document.getElementById('importantCount').textContent = pending ? ('未完成 ' + pending + ' 件') : '已全部处理 ✅';
+    const todayStr = todayKey();
+    const sorted = arr.slice().sort((a, b) => {
+      if (!!a.done !== !!b.done) return a.done ? 1 : -1;          // 未完成在前
+      return (a.due || '9999').localeCompare(b.due || '9999');    // 截止日升序
+    });
+    sorted.forEach(it => {
+      const li = document.createElement('li');
+      li.className = 'imp-item' + (it.done ? ' done' : '');
+      const overdue = !it.done && it.due && it.due < todayStr;
+      const dueText = it.due ? (it.due.slice(5).replace('-', '/') + (overdue ? ' · 已逾期' : '')) : '';
+      li.innerHTML =
+        '<div class="chk"></div>' +
+        '<span class="imp-text">' + esc(it.text) + '</span>' +
+        (it.due ? '<span class="due' + (overdue ? ' overdue' : '') + '">' + dueText + '</span>' : '') +
+        '<button class="x">✕</button>';
+      li.querySelector('.chk').addEventListener('click', () => {
+        it.done = !it.done;
+        saveState(); renderImportant();
+      });
+      li.querySelector('.x').addEventListener('click', () => {
+        arr.splice(arr.indexOf(it), 1);
+        saveState(); renderImportant();
+      });
+      ul.appendChild(li);
+    });
+  }
+  document.getElementById('importantAdd').addEventListener('click', () => {
+    const textInp = document.getElementById('importantText');
+    const dueInp = document.getElementById('importantDue');
+    const v = textInp.value.trim();
+    if (!v) return;
+    if (!state.important) state.important = [];
+    state.important.push({ id: 'i' + Date.now(), text: v, due: dueInp.value || '', done: false });
+    textInp.value = ''; dueInp.value = '';
+    saveState(); renderImportant();
   });
 
   // —— 复盘 ——
@@ -1167,6 +1240,7 @@
   renderWords();
   renderJobs();
   renderIdeas();
+  renderImportant();
   renderReview();
 })();
 </script>
